@@ -283,7 +283,7 @@ function ddhcp.dissector(tvbuf,pktinfo,root)
     -- show node id and command in info column
     local node_id = field_node_id()
     local command = field_command()
-    pktinfo.cols.info:set("(".. node_id.display .. " : " .. command.display .. ")")
+    pktinfo.cols.info:set(node_id.display .. ": " .. command.display)
 
     local num_payloads = field_count().value
     local pos = DDHCP_HDR_LEN
