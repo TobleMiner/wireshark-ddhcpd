@@ -127,7 +127,7 @@ local pf_count              = ProtoField.new("Number of payloads", "ddhcp.count"
 -- Payload fields
 local pf_block_idx          = ProtoField.new("Block index", "ddhcp.block_idx", ftypes.UINT32)
 local pf_block_timeout      = ProtoField.new("Block timeout", "ddhcp.block_timeout", ftypes.UINT16)
-local pf_block_reserved     = ProtoField.new("Block reseved", "ddhcp.block_reserved", ftypes.UINT8)
+local pf_block_reserved     = ProtoField.new("Block reserved", "ddhcp.block_reserved", ftypes.UINT8)
 local pf_address            = ProtoField.new("Prefix", "ddhcp.address", ftypes.IPv4)
 local pf_xid                = ProtoField.new("DHCP transaction id", "ddhcp.xid", ftypes.UINT32)
 local pf_lease_time         = ProtoField.new("DHCP lease time", "ddhcp.lease_time", ftypes.UINT32)
