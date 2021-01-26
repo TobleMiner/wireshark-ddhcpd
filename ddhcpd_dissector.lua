@@ -121,7 +121,7 @@ local command_names = {
 local pf_node_id            = ProtoField.new("Node ID", "ddhcp.node_id", ftypes.UINT64, nil, base.HEX)
 local pf_prefix             = ProtoField.new("Prefix", "ddhcp.prefix", ftypes.IPv4)
 local pf_prefix_len         = ProtoField.new("Prefix length", "ddhcp.prefix_len", ftypes.UINT8)
-local pf_blocksize          = ProtoField.new("Block size", "ddhcp.block_size", ftypes.UINT8)
+local pf_block_size         = ProtoField.new("Block size", "ddhcp.block_size", ftypes.UINT8)
 local pf_command            = ProtoField.new("Command", "ddhcp.command", ftypes.UINT8, command_names)
 local pf_count              = ProtoField.new("Number of payloads", "ddhcp.count", ftypes.UINT8)
 -- Payload fields
@@ -133,7 +133,7 @@ local pf_xid                = ProtoField.new("DHCP transaction id", "ddhcp.xid",
 local pf_lease_time         = ProtoField.new("DHCP lease time", "ddhcp.lease_time", ftypes.UINT32)
 local pf_chaddr             = ProtoField.new("DHCP chaddr", "ddhcp.chaddr", ftypes.NONE)
 ----------------------------------------
-ddhcp.fields = { pf_node_id, pf_prefix, pf_prefix_len, pf_blocksize, pf_command, pf_count,
+ddhcp.fields = { pf_node_id, pf_prefix, pf_prefix_len, pf_block_size, pf_command, pf_count,
                  pf_block_idx, pf_block_timeout, pf_block_reserved, pf_address, pf_xid,
                  pf_lease_time, pf_chaddr }
 
@@ -147,9 +147,10 @@ local ef_bad_command = ProtoExpert.new("ddhcp.command.invalid.expert", "Unknown 
 ddhcp.experts = { ef_too_short, ef_bad_command  }
 
 ----------------------------------------
-local field_node_id = Field.new("ddhcp.node_id")
-local field_command = Field.new("ddhcp.command")
-local field_count   = Field.new("ddhcp.count")
+local field_node_id    = Field.new("ddhcp.node_id")
+local field_command    = Field.new("ddhcp.command")
+local field_count      = Field.new("ddhcp.count")
+local field_block_size = Field.new("ddhcp.block_size")
 
 --------------------------------------------------------------------------------
 -- preferences handling stuff
@@ -230,16 +231,32 @@ local function get_payload_len(command_id)
     end
 end
 
-local function parse_payload(command, tree, tvbuf)
-    local payload_tree = tree:add(command_names[command])
+local function calc_block_cidr(block_idx, prefix_int)
+        local ip_int = prefix_int + block_idx * field_block_size().value
+        local cidr_str = ""
+        for i=3,0,-1 do
+            local octet = bit32.band(bit32.rshift(ip_int, i * 8), 0xff)
+            cidr_str = cidr_str .. tostring(octet)
+            if i > 0 then
+                cidr_str = cidr_str .. "."
+            end
+        end
+        local prefix_len = 32 - math.floor(math.log(field_block_size().value) / math.log(2) + .5)
+        cidr_str = cidr_str .. "/" .. tostring(prefix_len)
+        return cidr_str
+end
 
+local function parse_payload(command, tree, tvbuf, prefix_int)
     if command == COMMAND_UPDATECLAIM then
+        local payload_tree = tree:add(calc_block_cidr(tvbuf:range(0, 4):uint(), prefix_int))
         payload_tree:add(pf_block_idx, tvbuf:range(0, 4))
         payload_tree:add(pf_block_timeout, tvbuf:range(4, 2))
         payload_tree:add(pf_block_reserved, tvbuf:range(6, 1))
     elseif command == COMMAND_INQUIRE then
+        local payload_tree = tree:add(calc_block_cidr(tvbuf:range(0, 4):uint(), prefix_int))
         payload_tree:add(pf_block_idx, tvbuf:range(0, 4))
     else
+        local payload_tree = tree:add(tostring(tvbuf:range(0, 4):ipv4()))
         payload_tree:add(pf_address, tvbuf:range(0, 4))
         payload_tree:add(pf_xid, tvbuf:range(4, 4))
         payload_tree:add(pf_lease_time, tvbuf:range(8, 4))
@@ -274,9 +291,10 @@ function ddhcp.dissector(tvbuf,pktinfo,root)
 
     -- add header fields
     tree:add(pf_node_id, tvbuf:range(0, 8))
+    local prefix_int = tvbuf:range(8, 4):uint()
     tree:add(pf_prefix, tvbuf:range(8, 4))
     tree:add(pf_prefix_len, tvbuf:range(12, 1))
-    tree:add(pf_blocksize, tvbuf:range(13, 1))
+    tree:add(pf_block_size, tvbuf:range(13, 1))
     tree:add(pf_command, tvbuf:range(14, 1))
     tree:add(pf_count, tvbuf:range(15, 1))
 
@@ -306,7 +324,7 @@ function ddhcp.dissector(tvbuf,pktinfo,root)
     local payloads_tree = tree:add("Payloads")
 
     for i=1,num_payloads,1 do
-        parse_payload(command.value, payloads_tree, tvbuf:range(pos, payload_len))
+        parse_payload(command.value, payloads_tree, tvbuf:range(pos, payload_len), prefix_int)
         pos = pos + payload_len
     end
 
