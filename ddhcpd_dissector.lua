@@ -264,6 +264,9 @@ local function parse_payload(command, tree, tvbuf, prefix_int)
     end
 end
 
+local function command_has_variable_payload_count(cmd)
+    return command == COMMAND_UPDATECLAIM or command == COMMAND_INQUIRE
+end
 
 ----------------------------------------
 -- The following creates the callback function for the dissector.
@@ -312,6 +315,12 @@ function ddhcp.dissector(tvbuf,pktinfo,root)
         -- trouble! We don't understand this command
         payloads_tree:add_proto_expert_info(ef_bad_command)
         return pos
+    end
+
+    if not command_has_variable_payload_count(command.value) then
+        -- The DDHCP is a little quirky.
+        -- Packets with a fixed number of payloads advertise a payload count of 0
+        num_payloads = 1
     end
 
     -- Ensure all advertised payloads are present
