@@ -128,13 +128,13 @@ local pf_count              = ProtoField.new("Number of payloads", "ddhcp.count"
 local pf_block_idx          = ProtoField.new("Block index", "ddhcp.block_idx", ftypes.UINT32)
 local pf_block_timeout      = ProtoField.new("Block timeout", "ddhcp.block_timeout", ftypes.UINT16)
 local pf_block_reserved     = ProtoField.new("Block reserved", "ddhcp.block_reserved", ftypes.UINT8)
-local pf_address            = ProtoField.new("Prefix", "ddhcp.address", ftypes.IPv4)
+local pf_lease              = ProtoField.new("DHCP lease", "ddhcp.lease", ftypes.IPv4)
 local pf_xid                = ProtoField.new("DHCP transaction id", "ddhcp.xid", ftypes.UINT32)
 local pf_lease_time         = ProtoField.new("DHCP lease time", "ddhcp.lease_time", ftypes.UINT32)
 local pf_chaddr             = ProtoField.new("DHCP chaddr", "ddhcp.chaddr", ftypes.NONE)
 ----------------------------------------
 ddhcp.fields = { pf_node_id, pf_prefix, pf_prefix_len, pf_block_size, pf_command, pf_count,
-                 pf_block_idx, pf_block_timeout, pf_block_reserved, pf_address, pf_xid,
+                 pf_block_idx, pf_block_timeout, pf_block_reserved, pf_lease, pf_xid,
                  pf_lease_time, pf_chaddr }
 
 ----------------------------------------
@@ -257,7 +257,7 @@ local function parse_payload(command, tree, tvbuf, prefix_int)
         payload_tree:add(pf_block_idx, tvbuf:range(0, 4))
     else
         local payload_tree = tree:add(tostring(tvbuf:range(0, 4):ipv4()))
-        payload_tree:add(pf_address, tvbuf:range(0, 4))
+        payload_tree:add(pf_lease, tvbuf:range(0, 4))
         payload_tree:add(pf_xid, tvbuf:range(4, 4))
         payload_tree:add(pf_lease_time, tvbuf:range(8, 4))
         payload_tree:add(pf_chaddr, tvbuf:range(12, 16))
