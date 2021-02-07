@@ -265,7 +265,7 @@ local function parse_payload(command, tree, tvbuf, prefix_int)
 end
 
 local function command_has_variable_payload_count(cmd)
-    return command == COMMAND_UPDATECLAIM or command == COMMAND_INQUIRE
+    return cmd == COMMAND_UPDATECLAIM or cmd == COMMAND_INQUIRE
 end
 
 ----------------------------------------
