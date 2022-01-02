@@ -313,7 +313,7 @@ function ddhcp.dissector(tvbuf,pktinfo,root)
 
     if payload_len < 0 then
         -- trouble! We don't understand this command
-        payloads_tree:add_proto_expert_info(ef_bad_command)
+        tree:add_proto_expert_info(ef_bad_command)
         return pos
     end
 
